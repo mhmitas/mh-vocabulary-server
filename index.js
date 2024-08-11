@@ -28,7 +28,8 @@ const client = new MongoClient(uri, {
     }
 });
 
-const db = client.db("mh_fins")
+const db = client.db("mh_vocabulary")
+const userColl = db.collection("users")
 
 async function verifyJWT(req, res, next) {
     const token = req.cookies?.token || req.headers?.authorization?.split(" ")[1]
@@ -49,56 +50,53 @@ async function run() {
         // auth related apis
         // register user
         app.post("/api/register", async (req, res) => {
-            const { name, email, number, pin } = req.body;
-            if (!name || !email || !number || !pin) {
+            const { name, email, password } = req.body;
+            if (!name || !email || !password) {
                 return res.status(400).send({ message: "All fields are required" })
             }
             // check if user already exists
-            const isExist = await userColl.findOne({ $or: [{ email }, { number }] })
+            const isExist = await userColl.findOne({ email })
             if (isExist) {
-                return res.status(409).send({ message: "User already exists with this email or number" })
+                return res.status(409).send({ message: "User already exists with this email" })
             }
-            // hash pin
-            const hashedPin = await hashPassword(pin)
+            // hash password
+            const hashedPassword = await hashPassword(password)
             // insert user in database
-            const result = await userColl.insertOne({ name, email, pin: hashedPin, number, role: "pending", status: "pending" })
+            const result = await userColl.insertOne({ name, email, password: hashedPassword })
             console.log(result)
             // generate token 
-            const token = await generateToken(name, email, number, result?.insertedId?.toString())
+            const token = await generateToken(name, email, result?.insertedId?.toString())
             res
                 .status(200)
                 .cookie("token", token, cookieOptions)
-                .send(result)
+                .send({ user: result, token })
         })
         // log in user
         app.post("/api/login", async (req, res) => {
-            const { email, number, pin } = req.body;
+            const { email, password } = req.body;
             // check if all credentials are provided
-            if (!email && !number) {
-                return res.status(400).send({ message: "email or phone number required" })
-            }
-            if (!pin) {
-                return res.status(400).send({ message: "invalid pin" })
+            if (!email) {
+                return res.status(400).send({ message: "Email number required" })
             }
             // find the user in db
-            const user = await userColl.findOne({ $or: [{ email }, { number }] })
+            const user = await userColl.findOne({ email })
             if (!user) {
                 return res.status(404).send({ message: "Wrong credentials. User Not found" })
-            }
-            // verify pin
-            const verifyPin = await bcrypt.compare(pin, user?.pin);
-            if (!verifyPin) {
-                return res.status(401).send({ message: "Wrong Pin" })
+            } { result, token }
+            // verify password
+            const verifyPassword = await bcrypt.compare(password, user?.password);
+            if (!verifyPassword) {
+                return res.status(401).send({ message: "Wrong password" })
             }
             // crate token
-            const token = await generateToken(user.name, user?.email, user?.number, user?._id.toString())
+            const token = await generateToken(user.name, user?.email, user?._id.toString())
             // prepare data to send---
-            // remove pin from user Object
-            delete user?.pin;
+            // remove password from user Object
+            delete user?.password;
             res
                 .status(200)
                 .cookie("token", token, cookieOptions)
-                .send(user)
+                .send({ user, token })
         })
         // Logout
         app.post('/api/logout', async (req, res) => {
@@ -114,8 +112,11 @@ async function run() {
         // get current user
         app.get("/api/current-user", verifyJWT, async (req, res) => {
             const query = { email: req?.user?.email }
-            const options = { projection: { pin: 0 } }
+            const options = { projection: { password: 0 } }
             const user = await userColl.findOne(query, options)
+            if (!user) {
+                return res.status(404).send("User not found")
+            }
             res.send(user)
         })
 
@@ -141,9 +142,9 @@ app.listen(port, () => {
 
 
 // utils
-async function generateToken(name, email, number, _id) {
+async function generateToken(name, email, _id) {
     const token = jwt.sign(
-        { name, email, number, _id },
+        { name, email, _id },
         process.env.JWT_SECRET,
         { expiresIn: "1h" }
     )

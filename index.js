@@ -69,10 +69,10 @@ async function run() {
             res
                 .status(200)
                 .cookie("token", token, cookieOptions)
-                .send({ user: result, token })
+                .send(user)
         })
         // log in user
-        app.post("/api/login", async (req, res) => {
+        app.post("/api/sign-in", async (req, res) => {
             const { email, password } = req.body;
             // check if all credentials are provided
             if (!email) {
@@ -82,7 +82,7 @@ async function run() {
             const user = await userColl.findOne({ email })
             if (!user) {
                 return res.status(404).send({ message: "Wrong credentials. User Not found" })
-            } { result, token }
+            }
             // verify password
             const verifyPassword = await bcrypt.compare(password, user?.password);
             if (!verifyPassword) {

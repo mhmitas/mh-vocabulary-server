@@ -151,6 +151,7 @@ async function run() {
             const words = await wordColl.find({ collection: collectionId }).sort({ _id: -1 }).toArray()
             res.status(200).send(words)
         })
+        // get
         // create a document 
         app.post("/api/documents/create-document", async (req, res) => {
             const { name, user } = req.body;

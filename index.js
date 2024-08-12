@@ -30,6 +30,9 @@ const client = new MongoClient(uri, {
 
 const db = client.db("mh_vocabulary")
 const userColl = db.collection("users")
+const documentColl = db.collection("documents")
+const collectionColl = db.collection("collections")
+const wordColl = db.collection("words")
 
 async function verifyJWT(req, res, next) {
     const token = req.cookies?.token || req.headers?.authorization?.split(" ")[1]
@@ -69,7 +72,7 @@ async function run() {
             res
                 .status(200)
                 .cookie("token", token, cookieOptions)
-                .send(user)
+                .send(result)
         })
         // log in user
         app.post("/api/sign-in", async (req, res) => {
@@ -120,7 +123,57 @@ async function run() {
             res.send(user)
         })
 
-
+        // get documents
+        app.get("/api/documents/:userId", async (req, res) => {
+            const userId = req.param?._id;
+            const documents = await documentColl.find({ user: userId }).toArray()
+            res.status(200).send(documents)
+        })
+        // create a document 
+        app.post("/api/documents/create-document", async (req, res) => {
+            const { name, user } = req.body;
+            if (!name || !ObjectId.isValid(user)) {
+                return res.status(400).send("all fields are required")
+            }
+            const doc = {
+                name, user,
+                createdAt: Date.now()
+            }
+            const result = await documentColl.insertOne(doc)
+            res.status(200).send(result)
+        })
+        // create day document
+        app.post("/api/collections/create-collection", async (req, res) => {
+            const { name, document, date } = req.body;
+            if (!name || !ObjectId.isValid(document)) {
+                return res.status(400).send("all fields are required")
+            }
+            const doc = {
+                name, document, date: new Date(),
+                createdAt: Date.now()
+            }
+            const result = await collectionColl.insertOne(doc)
+            res.status(200).send(result)
+        })
+        // create word document
+        app.post("/api/words/create-word", async (req, res) => {
+            const { collection, word, definition, pronunciation = "", partOfSpeech, meaning = "", image = "", note = "", exampleSentences, synonyms = "", antonyms = "" } = req.body;
+            if (
+                !word ||
+                !definition ||
+                !partOfSpeech ||
+                !exampleSentences ||
+                !ObjectId.isValid(collection)
+            ) {
+                return res.status(400).send("all fields are required")
+            }
+            const doc = {
+                word, collection, definition, pronunciation, partOfSpeech, meaning, image, note, exampleSentences, synonyms, antonyms,
+                createdAt: Date.now()
+            };
+            const result = await wordColl.insertOne(doc)
+            res.status(200).send(result)
+        })
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
@@ -146,7 +199,7 @@ async function generateToken(name, email, _id) {
     const token = jwt.sign(
         { name, email, _id },
         process.env.JWT_SECRET,
-        { expiresIn: "1h" }
+        { expiresIn: "12h" }
     )
     return token
 }

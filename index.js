@@ -139,8 +139,17 @@ async function run() {
             if (!ObjectId.isValid(documentId)) {
                 return res.status(400).send("Invalid user id")
             }
-            const documents = await collectionColl.find({ document: documentId }).sort({ _id: 1 }).toArray()
-            res.status(200).send(documents)
+            const collections = await collectionColl.find({ document: documentId }).sort({ _id: 1 }).toArray()
+            res.status(200).send(collections)
+        })
+        // get words
+        app.get("/api/words/:collectionId", async (req, res) => {
+            const collectionId = req.params?.collectionId;
+            if (!ObjectId.isValid(collectionId)) {
+                return res.status(400).send("Invalid user id")
+            }
+            const words = await wordColl.find({ collection: collectionId }).sort({ _id: -1 }).toArray()
+            res.status(200).send(words)
         })
         // create a document 
         app.post("/api/documents/create-document", async (req, res) => {

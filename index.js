@@ -123,10 +123,23 @@ async function run() {
             res.send(user)
         })
 
+        // documents related apis
         // get documents
-        app.get("/api/documents/:userId", async (req, res) => {
-            const userId = req.param?._id;
+        app.get("/api/documents/:_id", async (req, res) => {
+            const userId = req.params?._id;
+            if (!ObjectId.isValid(userId)) {
+                return res.status(400).send("Invalid user id")
+            }
             const documents = await documentColl.find({ user: userId }).toArray()
+            res.status(200).send(documents)
+        })
+        // get collections of a document
+        app.get("/api/collections/:documentId", async (req, res) => {
+            const documentId = req.params?.documentId;
+            if (!ObjectId.isValid(documentId)) {
+                return res.status(400).send("Invalid user id")
+            }
+            const documents = await collectionColl.find({ document: documentId }).sort({ _id: 1 }).toArray()
             res.status(200).send(documents)
         })
         // create a document 

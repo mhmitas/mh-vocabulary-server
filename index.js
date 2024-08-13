@@ -165,9 +165,9 @@ async function run() {
             const result = await documentColl.insertOne(doc)
             res.status(200).send(result)
         })
-        // create day document
+        // create collection document
         app.post("/api/collections/create-collection", async (req, res) => {
-            const { name, document, date } = req.body;
+            const { name, document } = req.body;
             if (!name || !ObjectId.isValid(document)) {
                 return res.status(400).send("all fields are required")
             }
@@ -196,6 +196,33 @@ async function run() {
                 createdAt: Date.now()
             };
             const result = await wordColl.insertOne(doc)
+            res.status(200).send(result)
+        })
+        // delete document
+        app.delete("/api/documents/delete/:id", async (req, res) => {
+            const id = req.params?.id
+            if (!ObjectId.isValid(id)) {
+                return res.status(400).send("Invalid id")
+            }
+            const result = await documentColl.deleteOne({ _id: new ObjectId(id) })
+            res.status(200).send(result)
+        })
+        // delete collection.
+        app.delete("/api/collections/delete/:id", async (req, res) => {
+            const id = req.params?.id
+            if (!ObjectId.isValid(id)) {
+                return res.status(400).send("Invalid id")
+            }
+            const result = await collectionColl.deleteOne({ _id: new ObjectId(id) })
+            res.status(200).send(result)
+        })
+        // delete a word.
+        app.delete("/api/words/delete/:id", async (req, res) => {
+            const id = req.params?.id
+            if (!ObjectId.isValid(id)) {
+                return res.status(400).send("Invalid id")
+            }
+            const result = await wordColl.deleteOne({ _id: new ObjectId(id) })
             res.status(200).send(result)
         })
 

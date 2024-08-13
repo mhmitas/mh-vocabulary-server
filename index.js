@@ -151,6 +151,15 @@ async function run() {
             const words = await wordColl.find({ collection: collectionId }).sort({ _id: -1 }).toArray()
             res.status(200).send(words)
         })
+        // get a word
+        app.get("/api/words/word/:id", async (req, res) => {
+            const id = req.params?.id;
+            if (!ObjectId.isValid(id)) {
+                return res.status(400).send("Invalid word id")
+            }
+            const word = await wordColl.findOne({ _id: new ObjectId(id) })
+            res.status(200).send(word)
+        })
         // get
         // create a document 
         app.post("/api/documents/create-document", async (req, res) => {
@@ -180,7 +189,7 @@ async function run() {
         })
         // create word document
         app.post("/api/words/create-word", async (req, res) => {
-            const { collection, word, definitions, pronunciation = "", pos, meanings, image = "", note = "", exampleSentences, synonyms = "", antonyms = "" } = req.body;
+            const { collection, word, definitions, pronunciation = "", pos, meanings, image = "", notes = [], exampleSentences, synonyms = "", antonyms = "" } = req.body;
             if (
                 !word ||
                 !definitions ||
@@ -192,10 +201,32 @@ async function run() {
                 return res.status(400).send("all fields are required")
             }
             const doc = {
-                word, collection, definitions, pronunciation, pos, meanings, image, note, exampleSentences, synonyms, antonyms,
+                word, collection, definitions, pronunciation, pos, meanings, image, notes, exampleSentences, synonyms, antonyms,
                 createdAt: Date.now()
             };
             const result = await wordColl.insertOne(doc)
+            res.status(200).send(result)
+        })
+        // update word document
+        app.patch("/api/words/update-word/:id", async (req, res) => {
+            const id = req.params?.id;
+            if (!ObjectId.isValid(id)) {
+                return res.send("Invalid object id")
+            }
+            const { word, definitions, pronunciation = "", pos, meanings, image = "", notes = [], exampleSentences, synonyms = "", antonyms = "" } = req.body;
+            if (
+                !word ||
+                !definitions ||
+                !pos ||
+                !exampleSentences ||
+                !meanings
+            ) {
+                return res.status(400).send("all fields are required")
+            }
+            const doc = {
+                word, definitions, pronunciation, pos, meanings, image, notes, exampleSentences, synonyms, antonyms
+            };
+            const result = await wordColl.updateOne({ _id: new ObjectId(`${id}`) }, { $set: doc })
             res.status(200).send(result)
         })
         // delete document

@@ -180,18 +180,19 @@ async function run() {
         })
         // create word document
         app.post("/api/words/create-word", async (req, res) => {
-            const { collection, word, definition, pronunciation = "", partOfSpeech, meaning = "", image = "", note = "", exampleSentences, synonyms = "", antonyms = "" } = req.body;
+            const { collection, word, definitions, pronunciation = "", pos, meanings, image = "", note = "", exampleSentences, synonyms = "", antonyms = "" } = req.body;
             if (
                 !word ||
-                !definition ||
-                !partOfSpeech ||
+                !definitions ||
+                !pos ||
                 !exampleSentences ||
+                !meanings ||
                 !ObjectId.isValid(collection)
             ) {
                 return res.status(400).send("all fields are required")
             }
             const doc = {
-                word, collection, definition, pronunciation, partOfSpeech, meaning, image, note, exampleSentences, synonyms, antonyms,
+                word, collection, definitions, pronunciation, pos, meanings, image, note, exampleSentences, synonyms, antonyms,
                 createdAt: Date.now()
             };
             const result = await wordColl.insertOne(doc)
